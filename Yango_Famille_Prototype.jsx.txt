@@ -1,0 +1,669 @@
+import { useState } from "react";
+
+const ORANGE = "#FF3D00";
+const DARK = "#0D0D0D";
+const CARD = "#1A1A1A";
+const MUTED = "#888";
+const TEAL = "#00C9A7";
+const GOLD = "#FFD700";
+const PURPLE = "#A855F7";
+
+// ── DATA ──────────────────────────────────────────────────────────────────
+const members = [
+  { id: 1, name: "Maman Adjoua", avatar: "👩🏾", budget: 15000, spent: 9200, active: true },
+  { id: 2, name: "Kofi (fils)", avatar: "👦🏾", budget: 8000, spent: 3500, active: true },
+  { id: 3, name: "Grand-père", avatar: "👴🏾", budget: 5000, spent: 5000, active: false },
+];
+
+const history = [
+  { id: 1, member: "Maman Adjoua", avatar: "👩🏾", from: "Maison", to: "Marché Cocody", price: 1200, time: "Aujourd'hui 08:32", driverName: "Kouamé A.", driverRating: 4.9, driverAvatar: "🧑🏾‍✈️", points: 12 },
+  { id: 2, member: "Kofi (fils)", avatar: "👦🏾", from: "École", to: "Stade Félix H.", price: 900, time: "Hier 16:45", driverName: "Bamba S.", driverRating: 4.7, driverAvatar: "👨🏿‍✈️", points: 9 },
+  { id: 3, member: "Grand-père", avatar: "👴🏾", from: "Clinique Avicenne", to: "Maison", price: 2100, time: "Hier 11:10", driverName: "Yao K.", driverRating: 5.0, driverAvatar: "🧑🏽‍✈️", points: 21 },
+  { id: 4, member: "Maman Adjoua", avatar: "👩🏾", from: "Supermarché", to: "Maison", price: 1400, time: "Lun. 19:22", driverName: "Kouamé A.", driverRating: 4.9, driverAvatar: "🧑🏾‍✈️", points: 14 },
+];
+
+const rewards = [
+  { id: 1, label: "-5% sur votre prochaine course", cost: 100, icon: "🎟️", category: "reduction" },
+  { id: 2, label: "-10% sur votre prochaine course", cost: 200, icon: "🎫", category: "reduction" },
+  { id: 3, label: "Course gratuite jusqu'à 2000 F", cost: 500, icon: "🚗", category: "course" },
+  { id: 4, label: "Upgrade Confort offert", cost: 300, icon: "⭐", category: "upgrade" },
+  { id: 5, label: "Livraison gratuite (1 commande)", cost: 150, icon: "📦", category: "livraison" },
+];
+
+const badges = [
+  { id: 1, icon: "🌟", name: "Fidèle", desc: "10 courses complétées", unlocked: true, color: GOLD },
+  { id: 2, icon: "🔥", name: "En feu", desc: "5 courses en une semaine", unlocked: true, color: ORANGE },
+  { id: 3, icon: "👑", name: "VIP", desc: "Niveau Gold atteint", unlocked: false, color: GOLD },
+  { id: 4, icon: "💎", name: "Diamant", desc: "500 courses au total", unlocked: false, color: "#60CFFF" },
+  { id: 5, icon: "🤝", name: "Famille", desc: "3 membres invités", unlocked: true, color: TEAL },
+  { id: 6, icon: "⚡", name: "Rapide", desc: "Note moyenne 4.8+", unlocked: true, color: PURPLE },
+];
+
+// ── HELPERS ───────────────────────────────────────────────────────────────
+function PhoneFrame({ children }) {
+  return (
+    <div style={{
+      width: 375, minHeight: 812,
+      background: DARK, borderRadius: 48,
+      boxShadow: "0 40px 100px rgba(0,0,0,0.6), inset 0 0 0 2px #333",
+      overflow: "hidden", fontFamily: "'Segoe UI', sans-serif",
+      display: "flex", flexDirection: "column",
+    }}>
+      <div style={{ display: "flex", justifyContent: "center", padding: "14px 0 0" }}>
+        <div style={{ width: 120, height: 28, background: "#000", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#1a1a1a", border: "1.5px solid #333" }} />
+          <div style={{ width: 60, height: 10, background: "#111", borderRadius: 5 }} />
+        </div>
+      </div>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "0 0 16px", overflow: "hidden" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function TabBar({ current, onChange }) {
+  const tabs = [
+    { id: "home", icon: "🏠", label: "Accueil" },
+    { id: "rewards", icon: "⭐", label: "Points" },
+    { id: "drivers", icon: "🚗", label: "Chauffeurs" },
+    { id: "badges", icon: "🏆", label: "Badges" },
+    { id: "history", icon: "🕐", label: "Historique" },
+  ];
+  return (
+    <div style={{ display: "flex", borderTop: "1px solid #222", background: "#111", padding: "8px 0 4px" }}>
+      {tabs.map(t => (
+        <button key={t.id} onClick={() => onChange(t.id)} style={{
+          flex: 1, border: "none", background: "none",
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+          cursor: "pointer", padding: "4px 0",
+        }}>
+          <span style={{ fontSize: 18 }}>{t.icon}</span>
+          <span style={{ fontSize: 9, color: current === t.id ? ORANGE : MUTED, fontWeight: current === t.id ? "700" : "400" }}>
+            {t.label}
+          </span>
+          {current === t.id && <div style={{ width: 20, height: 3, background: ORANGE, borderRadius: 2, marginTop: 1 }} />}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── SCREEN: HOME ─────────────────────────────────────────────────────────
+function HomeScreen({ onNav }) {
+  const totalBudget = members.reduce((a, m) => a + m.budget, 0);
+  const totalSpent = members.reduce((a, m) => a + m.spent, 0);
+  const remaining = totalBudget - totalSpent;
+  const pct = Math.round((totalSpent / totalBudget) * 100);
+  const totalPoints = 847;
+  const level = "Gold";
+
+  return (
+    <div style={{ flex: 1, overflowY: "auto", padding: "0 18px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0 14px" }}>
+        <div>
+          <div style={{ fontSize: 12, color: MUTED }}>Bonjour 👋</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: "#fff" }}>Famille Kouassi</div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 11, color: GOLD, fontWeight: 700 }}>⭐ {totalPoints} pts</div>
+          <div style={{ fontSize: 10, color: MUTED }}>Niveau {level}</div>
+        </div>
+      </div>
+
+      {/* Wallet */}
+      <div style={{
+        background: `linear-gradient(135deg, ${ORANGE} 0%, #FF8C42 100%)`,
+        borderRadius: 22, padding: 18, marginBottom: 14,
+        boxShadow: `0 8px 32px rgba(255,61,0,0.35)`
+      }}>
+        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", marginBottom: 3 }}>Budget famille ce mois</div>
+        <div style={{ fontSize: 32, fontWeight: 800, color: "#fff", letterSpacing: -1 }}>
+          {totalBudget.toLocaleString()} <span style={{ fontSize: 14, fontWeight: 400 }}>FCFA</span>
+        </div>
+        <div style={{ marginTop: 12, marginBottom: 5 }}>
+          <div style={{ height: 5, background: "rgba(255,255,255,0.3)", borderRadius: 3 }}>
+            <div style={{ height: "100%", width: `${pct}%`, background: "#fff", borderRadius: 3 }} />
+          </div>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.85)" }}>{totalSpent.toLocaleString()} F dépensés</span>
+          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.85)" }}>{remaining.toLocaleString()} F restants</span>
+        </div>
+      </div>
+
+      {/* Points Banner */}
+      <div onClick={() => onNav("rewards")} style={{
+        background: "linear-gradient(135deg, #1a1200 0%, #2a1f00 100%)",
+        border: `1.5px solid ${GOLD}33`, borderRadius: 18, padding: 14, marginBottom: 14,
+        display: "flex", alignItems: "center", gap: 14, cursor: "pointer",
+      }}>
+        <div style={{ fontSize: 36 }}>⭐</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: GOLD }}>Vos YangoPoints</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: "#fff" }}>{totalPoints} pts</div>
+          <div style={{ fontSize: 11, color: MUTED }}>153 pts avant le niveau Platinum</div>
+          <div style={{ marginTop: 6, height: 4, background: "#333", borderRadius: 2 }}>
+            <div style={{ height: "100%", width: "85%", background: `linear-gradient(90deg, ${GOLD}, #FFB300)`, borderRadius: 2 }} />
+          </div>
+        </div>
+        <div style={{ fontSize: 18, color: GOLD }}>→</div>
+      </div>
+
+      {/* Quick actions */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+        {[
+          { icon: "🚗", label: "Réserver", sub: "Un favori", action: "drivers" },
+          { icon: "🎟️", label: "Réductions", sub: "3 dispos", action: "rewards" },
+          { icon: "🏆", label: "Badges", sub: "4 obtenus", action: "badges" },
+        ].map((q, i) => (
+          <div key={i} onClick={() => onNav(q.action)} style={{
+            flex: 1, background: CARD, borderRadius: 14, padding: 10, textAlign: "center", cursor: "pointer"
+          }}>
+            <div style={{ fontSize: 22 }}>{q.icon}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#fff", marginTop: 4 }}>{q.label}</div>
+            <div style={{ fontSize: 10, color: MUTED }}>{q.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Recent */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: 10 }}>Activité récente</div>
+        {history.slice(0, 2).map(h => (
+          <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: "1px solid #1f1f1f" }}>
+            <div style={{ fontSize: 24 }}>{h.avatar}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>{h.member}</div>
+              <div style={{ fontSize: 10, color: MUTED }}>{h.from} → {h.to}</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: ORANGE }}>-{h.price.toLocaleString()} F</div>
+              <div style={{ fontSize: 10, color: GOLD }}>+{h.points} pts ⭐</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── SCREEN: REWARDS ───────────────────────────────────────────────────────
+function RewardsScreen() {
+  const [points, setPoints] = useState(847);
+  const [redeemed, setRedeemed] = useState(null);
+  const [tab, setTab] = useState("echanger");
+
+  const handleRedeem = (r) => {
+    if (points >= r.cost) {
+      setPoints(p => p - r.cost);
+      setRedeemed(r);
+      setTimeout(() => setRedeemed(null), 2500);
+    }
+  };
+
+  const levelInfo = [
+    { name: "Bronze", min: 0, max: 300, color: "#CD7F32" },
+    { name: "Silver", min: 300, max: 600, color: "#C0C0C0" },
+    { name: "Gold", min: 600, max: 1000, color: GOLD },
+    { name: "Platinum", min: 1000, max: 2000, color: "#E5E4E2" },
+  ];
+  const currentLevel = levelInfo.findLast(l => points >= l.min) || levelInfo[0];
+  const nextLevel = levelInfo[levelInfo.indexOf(currentLevel) + 1];
+  const pctLevel = nextLevel ? Math.round(((points - currentLevel.min) / (nextLevel.min - currentLevel.min)) * 100) : 100;
+
+  return (
+    <div style={{ flex: 1, overflowY: "auto", padding: "12px 18px" }}>
+      {redeemed && (
+        <div style={{
+          position: "absolute", top: 80, left: 20, right: 20, zIndex: 99,
+          background: TEAL, borderRadius: 16, padding: 14, textAlign: "center",
+          boxShadow: "0 8px 24px rgba(0,201,167,0.4)",
+        }}>
+          <div style={{ fontSize: 24 }}>{redeemed.icon}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#fff", marginTop: 4 }}>Réduction activée !</div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.85)" }}>{redeemed.label}</div>
+        </div>
+      )}
+
+      {/* Points card */}
+      <div style={{
+        background: "linear-gradient(135deg, #1a1200, #2d2000)",
+        border: `1.5px solid ${currentLevel.color}44`, borderRadius: 22, padding: 18, marginBottom: 16,
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div style={{ fontSize: 11, color: MUTED }}>Vos YangoPoints</div>
+            <div style={{ fontSize: 40, fontWeight: 900, color: "#fff" }}>{points.toLocaleString()}</div>
+            <div style={{ fontSize: 12, color: currentLevel.color, fontWeight: 700 }}>✦ Niveau {currentLevel.name}</div>
+          </div>
+          <div style={{ fontSize: 48 }}>⭐</div>
+        </div>
+        <div style={{ marginTop: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: MUTED, marginBottom: 5 }}>
+            <span>{currentLevel.name}</span>
+            {nextLevel && <span>{nextLevel.min - points} pts avant {nextLevel.name}</span>}
+          </div>
+          <div style={{ height: 5, background: "#333", borderRadius: 3 }}>
+            <div style={{ height: "100%", width: `${pctLevel}%`, background: `linear-gradient(90deg, ${currentLevel.color}, ${currentLevel.color}99)`, borderRadius: 3 }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Comment gagner */}
+      <div style={{ background: CARD, borderRadius: 18, padding: 14, marginBottom: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: 10 }}>Comment gagner des points ?</div>
+        {[
+          { icon: "🚗", label: "Course complétée", pts: "+10 pts par trajet" },
+          { icon: "⭐", label: "Note 5 étoiles donnée", pts: "+5 pts bonus" },
+          { icon: "👥", label: "Proche qui voyage", pts: "+5 pts par course famille" },
+          { icon: "🔄", label: "Réserver un favori", pts: "+3 pts bonus fidélité" },
+        ].map((g, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: i < 3 ? "1px solid #222" : "none" }}>
+            <span style={{ fontSize: 20 }}>{g.icon}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12, color: "#fff" }}>{g.label}</div>
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: TEAL }}>{g.pts}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: "flex", background: "#111", borderRadius: 14, padding: 4, marginBottom: 14 }}>
+        {[{ id: "echanger", label: "Échanger" }, { id: "mes", label: "Mes réductions" }].map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={{
+            flex: 1, padding: "8px 0", border: "none", borderRadius: 10,
+            background: tab === t.id ? ORANGE : "transparent",
+            color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer",
+          }}>{t.label}</button>
+        ))}
+      </div>
+
+      {tab === "echanger" && (
+        <div>
+          {rewards.map(r => {
+            const canAfford = points >= r.cost;
+            return (
+              <div key={r.id} style={{
+                background: CARD, borderRadius: 16, padding: 14, marginBottom: 10,
+                display: "flex", alignItems: "center", gap: 12,
+                opacity: canAfford ? 1 : 0.5,
+              }}>
+                <div style={{ fontSize: 32 }}>{r.icon}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>{r.label}</div>
+                  <div style={{ fontSize: 11, color: GOLD, marginTop: 3 }}>⭐ {r.cost} points</div>
+                </div>
+                <button onClick={() => handleRedeem(r)} style={{
+                  padding: "8px 14px", border: "none", borderRadius: 12,
+                  background: canAfford ? ORANGE : "#333",
+                  color: "#fff", fontSize: 11, fontWeight: 700,
+                  cursor: canAfford ? "pointer" : "not-allowed",
+                }}>
+                  {canAfford ? "Utiliser" : "Insuffisant"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {tab === "mes" && (
+        <div>
+          {[
+            { icon: "🎟️", label: "-5% activé", exp: "Valable jusqu'au 10 juin", used: false },
+            { icon: "📦", label: "Livraison gratuite", exp: "Expiré", used: true },
+          ].map((item, i) => (
+            <div key={i} style={{
+              background: CARD, borderRadius: 16, padding: 14, marginBottom: 10,
+              display: "flex", gap: 12, alignItems: "center",
+              opacity: item.used ? 0.4 : 1,
+            }}>
+              <div style={{ fontSize: 30 }}>{item.icon}</div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>{item.label}</div>
+                <div style={{ fontSize: 11, color: item.used ? MUTED : TEAL }}>{item.exp}</div>
+              </div>
+              {!item.used && (
+                <div style={{ marginLeft: "auto", background: "rgba(0,201,167,0.15)", border: `1px solid ${TEAL}44`, borderRadius: 8, padding: "4px 10px", fontSize: 10, color: TEAL, fontWeight: 700 }}>
+                  ACTIF
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── SCREEN: DRIVERS FAVORIS ───────────────────────────────────────────────
+function DriversScreen() {
+  const [booked, setBooked] = useState(null);
+
+  const favDrivers = [
+    { id: 1, name: "Kouamé A.", avatar: "🧑🏾‍✈️", rating: 4.9, trips: 8, lastTrip: "Avant-hier", tags: ["Ponctuel", "Musique cool", "Propre"], available: true },
+    { id: 2, name: "Yao K.", avatar: "🧑🏽‍✈️", rating: 5.0, trips: 3, lastTrip: "Hier", tags: ["5 étoiles", "Aimable"], available: true },
+    { id: 3, name: "Bamba S.", avatar: "👨🏿‍✈️", rating: 4.7, trips: 5, lastTrip: "Il y a 3 jours", tags: ["Rapide", "Connaît la ville"], available: false },
+  ];
+
+  const handleBook = (d) => {
+    setBooked(d);
+    setTimeout(() => setBooked(null), 2500);
+  };
+
+  return (
+    <div style={{ flex: 1, overflowY: "auto", padding: "12px 18px" }}>
+      {booked && (
+        <div style={{
+          position: "absolute", top: 80, left: 20, right: 20, zIndex: 99,
+          background: TEAL, borderRadius: 16, padding: 14, textAlign: "center",
+          boxShadow: "0 8px 24px rgba(0,201,167,0.4)",
+        }}>
+          <div style={{ fontSize: 26 }}>{booked.avatar}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#fff", marginTop: 4 }}>Course réservée !</div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.85)" }}>{booked.name} arrive dans ~4 min</div>
+        </div>
+      )}
+
+      <div style={{ fontSize: 17, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Chauffeurs favoris</div>
+      <div style={{ fontSize: 12, color: MUTED, marginBottom: 16 }}>Réservez à nouveau un chauffeur avec qui c'était top 👌</div>
+
+      {/* Banner info */}
+      <div style={{ background: "rgba(255,61,0,0.08)", border: "1px solid rgba(255,61,0,0.2)", borderRadius: 14, padding: 12, marginBottom: 16, display: "flex", gap: 10, alignItems: "center" }}>
+        <span style={{ fontSize: 22 }}>💡</span>
+        <div style={{ fontSize: 11, color: "#ccc" }}>Un chauffeur est automatiquement ajouté ici après une course notée <strong style={{ color: ORANGE }}>4.5 étoiles ou plus</strong>.</div>
+      </div>
+
+      {favDrivers.map(d => (
+        <div key={d.id} style={{ background: CARD, borderRadius: 20, padding: 16, marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+            <div style={{ fontSize: 42 }}>{d.avatar}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>{d.name}</div>
+                <div style={{
+                  fontSize: 10, padding: "3px 10px", borderRadius: 20, fontWeight: 700,
+                  background: d.available ? "rgba(0,201,167,0.15)" : "rgba(136,136,136,0.15)",
+                  color: d.available ? TEAL : MUTED,
+                }}>{d.available ? "🟢 Disponible" : "⚫ Hors ligne"}</div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
+                <span style={{ fontSize: 14, color: GOLD }}>{"★".repeat(Math.floor(d.rating))}</span>
+                <span style={{ fontSize: 12, color: "#fff", fontWeight: 700 }}>{d.rating}</span>
+                <span style={{ fontSize: 11, color: MUTED }}>· {d.trips} courses ensemble</span>
+              </div>
+              <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>Dernière course : {d.lastTrip}</div>
+            </div>
+          </div>
+
+          {/* Tags */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+            {d.tags.map((tag, i) => (
+              <span key={i} style={{
+                fontSize: 10, padding: "4px 10px", borderRadius: 20,
+                background: "rgba(255,255,255,0.06)", color: "#ccc", border: "1px solid #2a2a2a"
+              }}>{tag}</span>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => d.available && handleBook(d)}
+              style={{
+                flex: 2, padding: "10px 0", border: "none", borderRadius: 12,
+                background: d.available ? ORANGE : "#2a2a2a",
+                color: "#fff", fontSize: 12, fontWeight: 700,
+                cursor: d.available ? "pointer" : "not-allowed",
+                boxShadow: d.available ? `0 4px 12px rgba(255,61,0,0.3)` : "none",
+              }}>
+              🚗 Réserver maintenant
+            </button>
+            <button style={{
+              flex: 1, padding: "10px 0", border: "1px solid #2a2a2a", borderRadius: 12,
+              background: "transparent", color: "#ccc", fontSize: 12, cursor: "pointer",
+            }}>
+              📋 Voir courses
+            </button>
+          </div>
+        </div>
+      ))}
+
+      <div style={{ background: "#111", borderRadius: 16, padding: 14, textAlign: "center" }}>
+        <div style={{ fontSize: 22, marginBottom: 6 }}>🔍</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>Pas encore de favoris ?</div>
+        <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>Notez 4.5+ votre prochain chauffeur pour l'ajouter ici</div>
+      </div>
+    </div>
+  );
+}
+
+// ── SCREEN: BADGES ────────────────────────────────────────────────────────
+function BadgesScreen() {
+  const [selected, setSelected] = useState(null);
+
+  const perks = [
+    { level: "Bronze", icon: "🥉", perk: "Accès aux offres flash Yango", color: "#CD7F32" },
+    { level: "Silver", icon: "🥈", perk: "Réduction 5% permanente + priorité",  color: "#C0C0C0" },
+    { level: "Gold ✓", icon: "🥇", perk: "Chauffeur prioritaire + -10% en heures de pointe", color: GOLD },
+    { level: "Platinum", icon: "💎", perk: "Service VIP, file prioritaire, support dédié", color: "#E5E4E2" },
+  ];
+
+  return (
+    <div style={{ flex: 1, overflowY: "auto", padding: "12px 18px" }}>
+      <div style={{ fontSize: 17, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Badges & Avantages</div>
+      <div style={{ fontSize: 12, color: MUTED, marginBottom: 16 }}>Vos récompenses basées sur vos évaluations et votre fidélité</div>
+
+      {/* Mes badges */}
+      <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: 10 }}>Vos badges</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
+        {badges.map(b => (
+          <div key={b.id} onClick={() => setSelected(selected === b.id ? null : b.id)} style={{
+            background: b.unlocked ? `linear-gradient(135deg, ${b.color}22, ${b.color}0A)` : "#111",
+            border: `1.5px solid ${b.unlocked ? b.color + "55" : "#222"}`,
+            borderRadius: 16, padding: "14px 8px", textAlign: "center",
+            cursor: "pointer", opacity: b.unlocked ? 1 : 0.4,
+          }}>
+            <div style={{ fontSize: 32, filter: b.unlocked ? "none" : "grayscale(100%)" }}>{b.icon}</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: b.unlocked ? b.color : MUTED, marginTop: 6 }}>{b.name}</div>
+            {!b.unlocked && <div style={{ fontSize: 9, color: "#444", marginTop: 2 }}>🔒 Verrouillé</div>}
+          </div>
+        ))}
+      </div>
+
+      {/* Description badge sélectionné */}
+      {selected && (() => {
+        const b = badges.find(x => x.id === selected);
+        return b ? (
+          <div style={{ background: CARD, borderRadius: 16, padding: 14, marginBottom: 16, border: `1px solid ${b.color}33` }}>
+            <div style={{ fontSize: 26, marginBottom: 6 }}>{b.icon}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: b.color }}>{b.name}</div>
+            <div style={{ fontSize: 12, color: "#ccc", marginTop: 4 }}>{b.desc}</div>
+            {!b.unlocked && <div style={{ fontSize: 11, color: MUTED, marginTop: 6 }}>Continuez à utiliser Yango pour débloquer ce badge.</div>}
+          </div>
+        ) : null;
+      })()}
+
+      {/* Niveaux & avantages */}
+      <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: 10 }}>Niveaux & avantages</div>
+      {perks.map((p, i) => {
+        const isCurrent = p.level.includes("Gold");
+        return (
+          <div key={i} style={{
+            background: isCurrent ? `linear-gradient(135deg, ${GOLD}18, #1a1200)` : CARD,
+            border: `1.5px solid ${isCurrent ? GOLD + "55" : "#222"}`,
+            borderRadius: 16, padding: 14, marginBottom: 10,
+            display: "flex", alignItems: "center", gap: 12,
+          }}>
+            <div style={{ fontSize: 28 }}>{p.icon}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: p.color }}>{p.level}</div>
+              <div style={{ fontSize: 11, color: "#ccc", marginTop: 3 }}>{p.perk}</div>
+            </div>
+            {isCurrent && (
+              <div style={{ background: GOLD + "22", border: `1px solid ${GOLD}55`, borderRadius: 8, padding: "4px 10px", fontSize: 9, color: GOLD, fontWeight: 700 }}>
+                ACTUEL
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Primes chauffeur */}
+      <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", margin: "16px 0 10px" }}>Primes chauffeurs partenaires</div>
+      <div style={{ background: "linear-gradient(135deg, #0a1a0a, #001400)", border: "1px solid rgba(0,201,167,0.2)", borderRadius: 16, padding: 14 }}>
+        <div style={{ fontSize: 12, color: "#ccc", lineHeight: 1.6 }}>
+          Les chauffeurs bien notés par les utilisateurs Yango bénéficient de :
+        </div>
+        {[
+          { icon: "💰", text: "Prime hebdo si note moyenne ≥ 4.8" },
+          { icon: "🎯", text: "Badge Chauffeur Elite visible sur le profil" },
+          { icon: "⚡", text: "Priorité de dispatch en heures creuses" },
+          { icon: "🎓", text: "Accès formation conduite premium offerte" },
+        ].map((item, i) => (
+          <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", padding: "7px 0", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+            <span style={{ fontSize: 18 }}>{item.icon}</span>
+            <span style={{ fontSize: 12, color: "#ccc" }}>{item.text}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── SCREEN: HISTORY ───────────────────────────────────────────────────────
+function HistoryScreen({ onNav }) {
+  const totalPts = history.reduce((a, h) => a + h.points, 0);
+
+  return (
+    <div style={{ flex: 1, overflowY: "auto", padding: "12px 18px" }}>
+      <div style={{ fontSize: 17, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Historique</div>
+      <div style={{ fontSize: 12, color: MUTED, marginBottom: 14 }}>Toutes les courses du groupe</div>
+
+      <div style={{ background: CARD, borderRadius: 16, padding: 14, marginBottom: 16, display: "flex", justifyContent: "space-between" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: "#fff" }}>{history.length}</div>
+          <div style={{ fontSize: 10, color: MUTED }}>Courses</div>
+        </div>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: ORANGE }}>{history.reduce((a, h) => a + h.price, 0).toLocaleString()} F</div>
+          <div style={{ fontSize: 10, color: MUTED }}>Dépensé</div>
+        </div>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: GOLD }}>+{totalPts} ⭐</div>
+          <div style={{ fontSize: 10, color: MUTED }}>Points gagnés</div>
+        </div>
+      </div>
+
+      {history.map(h => (
+        <div key={h.id} style={{ background: CARD, borderRadius: 18, padding: 14, marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <div style={{ fontSize: 28 }}>{h.avatar}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>{h.member}</div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: ORANGE }}>-{h.price.toLocaleString()} F</div>
+              </div>
+              <div style={{ fontSize: 10, color: MUTED }}>{h.from} → {h.to}</div>
+              <div style={{ fontSize: 10, color: "#555", marginTop: 2 }}>{h.time}</div>
+            </div>
+          </div>
+
+          {/* Chauffeur + actions */}
+          <div style={{ background: "#111", borderRadius: 12, padding: 10, display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ fontSize: 26 }}>{h.driverAvatar}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>{h.driverName}</div>
+              <div style={{ fontSize: 11, color: GOLD }}>{"★".repeat(Math.floor(h.driverRating))} {h.driverRating}</div>
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={() => onNav("drivers")} style={{
+                padding: "6px 10px", background: "rgba(255,61,0,0.15)",
+                border: "1px solid rgba(255,61,0,0.3)", borderRadius: 8,
+                color: ORANGE, fontSize: 10, fontWeight: 700, cursor: "pointer"
+              }}>🔄 Réserver</button>
+              <div style={{ padding: "6px 10px", background: "rgba(255,215,0,0.1)", border: `1px solid ${GOLD}33`, borderRadius: 8, fontSize: 10, color: GOLD, fontWeight: 700 }}>
+                +{h.points} pts
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── APP ROOT ──────────────────────────────────────────────────────────────
+export default function App() {
+  const [screen, setScreen] = useState("home");
+
+  const allScreens = [
+    { id: "home", icon: "🏠", label: "Dashboard famille" },
+    { id: "rewards", icon: "⭐", label: "Points & réductions" },
+    { id: "drivers", icon: "🚗", label: "Chauffeurs favoris" },
+    { id: "badges", icon: "🏆", label: "Badges & avantages" },
+    { id: "history", icon: "🕐", label: "Historique des courses" },
+  ];
+
+  const features = [
+    "Wallet partagé avec budget",
+    "Invitation par SMS ou lien",
+    "Points à chaque trajet",
+    "Échange contre réductions",
+    "Réservation chauffeur favori",
+    "Badges & niveaux (Bronze→Platinum)",
+    "Primes chauffeurs bien notés",
+  ];
+
+  return (
+    <div style={{
+      minHeight: "100vh", background: "#050505",
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+    }}>
+      <div style={{ display: "flex", gap: 50, alignItems: "flex-start", flexWrap: "wrap", justifyContent: "center" }}>
+
+        <PhoneFrame>
+          {screen === "home" && <HomeScreen onNav={setScreen} />}
+          {screen === "rewards" && <RewardsScreen />}
+          {screen === "drivers" && <DriversScreen />}
+          {screen === "badges" && <BadgesScreen />}
+          {screen === "history" && <HistoryScreen onNav={setScreen} />}
+          <TabBar current={screen} onChange={setScreen} />
+        </PhoneFrame>
+
+        {/* Sidebar */}
+        <div style={{ maxWidth: 270, paddingTop: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: ORANGE, letterSpacing: 3, marginBottom: 8 }}>PROTOTYPE V2</div>
+          <div style={{ fontSize: 26, fontWeight: 900, color: "#fff", lineHeight: 1.2, marginBottom: 10 }}>
+            Yango<br />Super App
+          </div>
+          <div style={{ fontSize: 13, color: "#aaa", lineHeight: 1.6, marginBottom: 24 }}>
+            Portefeuille famille + fidélité + chauffeurs favoris.
+          </div>
+
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#fff", marginBottom: 10 }}>Écrans disponibles</div>
+          {allScreens.map(item => (
+            <button key={item.id} onClick={() => setScreen(item.id)} style={{
+              display: "flex", alignItems: "center", gap: 10,
+              width: "100%", padding: "9px 12px", marginBottom: 5,
+              background: screen === item.id ? `rgba(255,61,0,0.15)` : "rgba(255,255,255,0.03)",
+              border: `1px solid ${screen === item.id ? ORANGE : "rgba(255,255,255,0.06)"}`,
+              borderRadius: 10, color: screen === item.id ? ORANGE : "#bbb",
+              fontSize: 12, fontWeight: screen === item.id ? 700 : 400, cursor: "pointer", textAlign: "left",
+            }}>
+              <span style={{ fontSize: 16 }}>{item.icon}</span> {item.label}
+            </button>
+          ))}
+
+          <div style={{ marginTop: 20, padding: 14, background: "rgba(255,255,255,0.02)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: TEAL, marginBottom: 8 }}>✅ Fonctionnalités</div>
+            {features.map((f, i) => (
+              <div key={i} style={{ fontSize: 10, color: "#777", padding: "3px 0" }}>· {f}</div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
